@@ -9,8 +9,9 @@ namespace Mock1Trainning.Common
     {
         public MappingConfig()
         {
-            CreateMap<VillaDTO, Villa>().ReverseMap();
-            CreateMap<VillaDTO, Villa>().ReverseMap();
+            CreateMap<Villa, VillaDTO>().ReverseMap();
+            CreateMap<Villa, VillaUpdateDTO>().ReverseMap();
+            CreateMap<Villa, VillaCreateDTO>().ReverseMap();
            
         }
     }
