@@ -2,7 +2,7 @@
 
 namespace Mock1Trainning.Models.DTO
 {
-    public class VillaDTO
+    public class VillaUpdateDTO
     {
         public int Id { get; set; }
         [Required]
