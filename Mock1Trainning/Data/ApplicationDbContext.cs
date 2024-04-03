@@ -9,6 +9,6 @@ namespace Mock1Trainning.Data
             base(options)
         { }
         public DbSet<Villa> Villas { get; set; }
-
+        public DbSet<LocalUser> LocalUsers { get; set; }
     }
 }

@@ -9,6 +9,7 @@ namespace Mock1Trainning.Repository
         Task<Villa> Get(Expression<Func<Villa,bool>> filter = null, bool tracked = true);
         Task Create(Villa entity);
         Task Remove(Villa entity);
+        Task Update(Villa entity);
         Task Save();
     }
 }

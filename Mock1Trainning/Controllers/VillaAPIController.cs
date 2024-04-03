@@ -1,5 +1,6 @@
 ﻿
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,8 @@ using Mock1Trainning.Data;
 using Mock1Trainning.Logging;
 using Mock1Trainning.Models;
 using Mock1Trainning.Models.DTO;
+using Mock1Trainning.Models.Response;
+using Mock1Trainning.Repository;
 
 namespace Mock1Trainning.Controllers
 {
@@ -16,22 +19,27 @@ namespace Mock1Trainning.Controllers
     {
         
         private readonly ILogging _logger;
-        private readonly ApplicationDbContext _db;
+        private readonly IVillaRepository _villaRepository;
         private readonly IMapper _mapper;
+        private readonly APIResponse _response;
 
-        public VillaAPIController(ILogging logger, ApplicationDbContext db, IMapper mapper)
+        public VillaAPIController(ILogging logger, IVillaRepository villaRepository, IMapper mapper)
         {
             _logger = logger;
-            _db = db;
+            _villaRepository = villaRepository;
             _mapper = mapper;
+            this._response = new();
         }
-
+        [Authorize]
         [HttpGet("GetAllVilla")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public async Task<ActionResult<IEnumerable<VillaDTO>>> GetVillas()
+        public async Task<IActionResult> GetVillas()
         {
-            IEnumerable<Villa> villalist = await _db.Villas.ToListAsync();
-            return Ok(_mapper.Map<List<VillaDTO>>(villalist));
+            IEnumerable<Villa> villalist = await _villaRepository.GetAll();
+            _response.Result = _mapper.Map<List<VillaDTO>>(villalist);
+
+            _response.StatusCode = System.Net.HttpStatusCode.OK;
+            return Ok(_response);
         }
 
         [HttpGet("{id:int}", Name = "GetVilla")]
@@ -45,7 +53,7 @@ namespace Mock1Trainning.Controllers
                 _logger.Log("Get villa error with id: " + id,"error");
                 return BadRequest();
             }
-            var villa = _db.Villas.FirstOrDefault(v => v.Id == id);
+            var villa = _villaRepository.Get(v => v.Id == id, false);
             if (villa == null) return NotFound();
             return Ok(_mapper.Map<VillaDTO>(villa));
         }
@@ -53,7 +61,7 @@ namespace Mock1Trainning.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<VillaDTO> CreateVilla([FromBody] VillaCreateDTO villaDTO)
+        public IActionResult CreateVilla([FromBody] VillaCreateDTO villaDTO)
         {
             if (!ModelState.IsValid)
             {
@@ -82,8 +90,8 @@ namespace Mock1Trainning.Controllers
 
             //}
             Villa model = _mapper.Map<Villa>(villaDTO);
-            _db.Villas.Add(model);
-            _db.SaveChanges();
+            _villaRepository.Create(model);
+         
             return CreatedAtRoute("GetVilla", new { id = model.Id }, villaDTO);
         }
         [HttpDelete("DeleteVilla/{id:int}")]
@@ -91,7 +99,7 @@ namespace Mock1Trainning.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<VillaDTO> DeleteVilla(int id)
+        public async Task<IActionResult> DeleteVilla(int id)
         {
 
 
@@ -100,13 +108,13 @@ namespace Mock1Trainning.Controllers
                 return BadRequest();
 
             }
-            var villa = _db.Villas.FirstOrDefault(v => v.Id == id);
+            Villa villa =  await _villaRepository.Get(v => v.Id == id);
             if (villa == null)
             {
                 return NotFound();
             }
-            _db.Villas.Remove(villa);
-            return NoContent(); ;
+            await _villaRepository.Remove(villa);
+            return NoContent();
         }
         [HttpPut("UpdateVilla/{id:int}", Name = "UpdateVilla")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -116,12 +124,12 @@ namespace Mock1Trainning.Controllers
         {
 
 
-            if (id == 0)
+            if (id != villaDTO.Id)
             {
                 return BadRequest();
 
             }
-            var villa = _db.Villas.FirstOrDefault(v => v.Id == id);
+            var villa = _villaRepository.Get(v => v.Id == id);
             if (villa == null)
             {
                 return NotFound();
@@ -134,8 +142,8 @@ namespace Mock1Trainning.Controllers
 
             Villa model = _mapper.Map<Villa>(villaDTO);
 
-            _db.Update(model);
-            await _db.SaveChangesAsync();
+            await _villaRepository.Update(model);
+
             return NoContent();
         }
         [HttpPatch("UpdatePartialVilla/{id:int}", Name = "UpdatePartialVilla")]
@@ -151,7 +159,7 @@ namespace Mock1Trainning.Controllers
                 return BadRequest();
 
             }
-            var villa = _db.Villas.AsNoTracking().FirstOrDefault(v => v.Id == id);
+            var villa = _villaRepository.Get(v => v.Id == id,false);
             VillaUpdateDTO villaUpdateDTO = _mapper.Map<VillaUpdateDTO>(villa);
             if (villa == null)
             {
@@ -159,13 +167,13 @@ namespace Mock1Trainning.Controllers
             }
             patchDTO.ApplyTo(villaUpdateDTO, ModelState);
             Villa model = _mapper.Map<Villa>(patchDTO);
-            _db.Villas.Update(model);
-            await _db.SaveChangesAsync();
+            
+            
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
+            await _villaRepository.Update(model);
             return NoContent();
         }
     }

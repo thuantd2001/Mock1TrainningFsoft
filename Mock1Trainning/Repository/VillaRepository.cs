@@ -51,13 +51,19 @@ namespace Mock1Trainning.Repository
 
         public async Task Remove(Villa entity)
         {
-            _context.Remove(entity);
+            _context.Villas.Remove(entity);
             await Save();
         }
 
         public async Task Save()
         {
             await _context.SaveChangesAsync();
+        }
+
+        public async Task Update(Villa entity)
+        {
+            _context.Villas.Update(entity);
+            await Save();
         }
     }
 }
