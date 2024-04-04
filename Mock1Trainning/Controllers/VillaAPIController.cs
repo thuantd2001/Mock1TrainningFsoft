@@ -30,7 +30,7 @@ namespace Mock1Trainning.Controllers
             _mapper = mapper;
             this._response = new();
         }
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpGet("GetAllVilla")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetVillas()
@@ -61,7 +61,7 @@ namespace Mock1Trainning.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult CreateVilla([FromBody] VillaCreateDTO villaDTO)
+        public async Task<ActionResult<APIResponse>> CreateVilla([FromBody] VillaCreateDTO villaDTO)
         {
             if (!ModelState.IsValid)
             {
@@ -91,8 +91,11 @@ namespace Mock1Trainning.Controllers
             //}
             Villa model = _mapper.Map<Villa>(villaDTO);
             _villaRepository.Create(model);
+            _response.Result = model;
+            _response.StatusCode = System.Net.HttpStatusCode.OK;
+            _response.IsSuccess = true;
          
-            return CreatedAtRoute("GetVilla", new { id = model.Id }, villaDTO);
+            return _response;
         }
         [HttpDelete("DeleteVilla/{id:int}")]
 
@@ -114,8 +117,12 @@ namespace Mock1Trainning.Controllers
                 return NotFound();
             }
             await _villaRepository.Remove(villa);
-            return NoContent();
+
+            _response.StatusCode = System.Net.HttpStatusCode.NoContent;
+            _response.IsSuccess = true;
+            return Ok(_response);
         }
+        [Authorize("Admin")]
         [HttpPut("UpdateVilla/{id:int}", Name = "UpdateVilla")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -144,7 +151,10 @@ namespace Mock1Trainning.Controllers
 
             await _villaRepository.Update(model);
 
-            return NoContent();
+            _response.Result = model;
+            _response.StatusCode = System.Net.HttpStatusCode.NoContent;
+            _response.IsSuccess = true;
+            return Ok(_response);
         }
         [HttpPatch("UpdatePartialVilla/{id:int}", Name = "UpdatePartialVilla")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -174,7 +184,10 @@ namespace Mock1Trainning.Controllers
                 return BadRequest(ModelState);
             }
             await _villaRepository.Update(model);
-            return NoContent();
+            _response.Result = model;
+            _response.StatusCode = System.Net.HttpStatusCode.NoContent;
+            _response.IsSuccess = true;
+            return Ok(_response);
         }
     }
 }
